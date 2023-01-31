@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantScheduler.Data.Interfaces;
 using RestaurantScheduler.Models;
+using Serilog;
 
 namespace RestaurantScheduler.Controllers
 {
@@ -12,23 +13,29 @@ namespace RestaurantScheduler.Controllers
     {
         private readonly IRestaurantSchedulerDbContext _dbContext;
         private readonly IDirectDbConnection _directConnection;
-        private readonly Serilog.ILogger _logger;
 
         public OrganizationsController(
             IRestaurantSchedulerDbContext dbContext,
-            IDirectDbConnection directConnection,
-            Serilog.ILogger logger)
+            IDirectDbConnection directConnection)
         {
             _dbContext = dbContext;
             _directConnection = directConnection;
-            _logger = logger;
         }
 
         [HttpGet("{id}")]
         public async Task<Organization> GetByIdEF(int id)
         {
-            return await _dbContext.Organizations.FindAsync(id)
-                ?? throw new Exception("Organization not found");            
+            Stopwatch stopWatch = new Stopwatch();
+            stopWatch.Start();
+
+            var data = await _dbContext.Organizations.FindAsync(id)
+                ?? throw new Exception("Organization not found");
+
+            stopWatch.Stop();
+
+            Log.Warning($"{nameof(GetByIdEF)}: {stopWatch.Elapsed}s for Db retrieval");
+
+            return data;
         }
 
         [HttpGet()]
@@ -41,7 +48,7 @@ namespace RestaurantScheduler.Controllers
 
             stopWatch.Stop();
 
-            _logger.Warning($"{nameof(GetListEF)}: {stopWatch.Elapsed}\n");
+            Log.Warning($"{nameof(GetListEF)}: {stopWatch.Elapsed}s for Db retrieval");
 
             return data;
         }
@@ -52,27 +59,29 @@ namespace RestaurantScheduler.Controllers
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var data = await _dbContext.Organizations.FindAsync(id)
-                ?? throw new Exception("Organization not found");
+            var data = await _directConnection.QuerySingleOrDefaultAsync<Organization>(
+                "SELECT * FROM Organizations WHERE Id = @Id",
+                new { Id = id })
+                    ?? throw new Exception("Organization not found.");
 
             stopWatch.Stop();
 
-            _logger.Warning($"{nameof(GetByIdDirectly)}: {stopWatch.Elapsed}\n");
+            Log.Warning($"{nameof(GetByIdDirectly)}: {stopWatch.Elapsed}s for Db retrieval");
 
             return data;
         }
 
         [HttpGet("direct/")]
-        public async Task<IList<Organization>> GetListDirectly()
+        public async Task<IReadOnlyList<Organization>> GetListDirectly()
         {
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var data = await _directConnection.QueryAsync();
+            var data = await _directConnection.QueryAsync<Organization>("SELECT * FROM Organizations");
 
             stopWatch.Stop();
 
-            _logger.Warning($"{nameof(GetListDirectly)}: {stopWatch.Elapsed}\n");
+            Log.Warning($"{nameof(GetListDirectly)}: {stopWatch.Elapsed}s for Db retrieval");
 
             return data;
         }

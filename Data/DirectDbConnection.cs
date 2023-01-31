@@ -35,13 +35,13 @@ namespace RestaurantScheduler.Data
                 sql, param, transaction);
         }
 
-        public async Task<T> QuerySingleAsync<T>(
+        public async Task<T> QuerySingleOrDefaultAsync<T>(
             string sql, 
             object? param = null,
             IDbTransaction? transaction = null, 
             CancellationToken cancellationToken = default)
         {
-            return await _context.Connection.QuerySingleAsync<T>(
+            return await _context.Connection.QuerySingleOrDefaultAsync<T>(
                 sql, param, transaction);
         }
 

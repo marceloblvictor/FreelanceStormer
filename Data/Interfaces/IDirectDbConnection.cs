@@ -14,7 +14,7 @@ namespace RestaurantScheduler.Data.Interfaces
             object? param = null, 
             IDbTransaction? transaction = null, 
             CancellationToken cancellationToken = default);
-        Task<T> QuerySingleAsync<T>(
+        Task<T> QuerySingleOrDefaultAsync<T>(
             string sql, 
             object? param = null, 
             IDbTransaction? transaction = null, 
