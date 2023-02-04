@@ -1,20 +1,19 @@
 ﻿using System.Data;
 using Microsoft.EntityFrameworkCore;
-using RestaurantScheduler.Data.Interfaces;
-using RestaurantScheduler.Models;
+using FreelanceStormer.Data.Interfaces;
+using FreelanceStormer.Models;
 
-namespace RestaurantScheduler.Data
+namespace FreelanceStormer.Data
 {
-    public class RestaurantSchedulerDbContext : DbContext, IRestaurantSchedulerDbContext
+    public class FreelanceStormerDbContext : DbContext, IFreelanceStormerDbContext
     {
-        public RestaurantSchedulerDbContext(DbContextOptions<RestaurantSchedulerDbContext> options)
+        public FreelanceStormerDbContext(DbContextOptions<FreelanceStormerDbContext> options)
             : base(options)
         {
         }
 
         public IDbConnection Connection => Database.GetDbConnection();
 
-        public DbSet<Restaurant> Restaurants { get; set; } = default!;
         public DbSet<Organization> Organizations { get; set; } = default!;
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -26,9 +25,6 @@ namespace RestaurantScheduler.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<Restaurant>()
-                .HasOne(r => r.Organization)
-                    .WithMany(u => u.Restaurants);
         }
     }
 }

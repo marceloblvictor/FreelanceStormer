@@ -1,8 +1,7 @@
-﻿namespace RestaurantScheduler.Data.Interfaces
+﻿namespace FreelanceStormer.Data.Interfaces
 {
     public interface IDataSeeder
     {
-        Task SeedFakeRestaurantsAsync();
-        Task SeedFakeUsersAsync();
+        Task SeedFakeOrganizationsAsync();
     }
 }

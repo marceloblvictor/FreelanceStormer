@@ -1,9 +1,13 @@
-using Bogus;
+using FreelanceStormer;
+using FreelanceStormer.Data;
+using FreelanceStormer.Data.Interfaces;
+using FreelanceStormer.Models;
+using FreelanceStormer.Services;
+using FreelanceStormer.Services.Interfaces;
+using FreelanceStormer.Utils;
+using FreelanceStormer.Utils.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using RestaurantScheduler;
-using RestaurantScheduler.Data;
-using RestaurantScheduler.Data.Interfaces;
-using RestaurantScheduler.Models;
+using Microsoft.Extensions.Caching.Memory;
 using Serilog;
 using Serilog.Events;
 
@@ -22,22 +26,32 @@ builder.Host.UseSerilog((context, services, configuration)
     => configuration
         .ReadFrom.Configuration(builder.Configuration)
         .Enrich.With<EventTypeEnricher>()
+        // when serializing the organization entity perform a transformation
+        .Destructure.ByTransforming<Organization>(
+            org => new { 
+                            org.Name, 
+                            org.PhoneNumber, 
+                            org.Id, 
+                            org.CreatedDate 
+                        })
         .Enrich.FromLogContext());
 
 Log.Information("Starting services configuration...");
 
 // Add services to the container.
-builder.Services.AddDbContext<RestaurantSchedulerDbContext>(
+builder.Services.AddDbContext<FreelanceStormerDbContext>(
     options => options.UseSqlServer(
-        builder.Configuration.GetConnectionString("RestaurantSchedulerDbContext")));
+        builder.Configuration.GetConnectionString("FreelanceStormerDbContext")));
 
 builder.Services.AddScoped<IDataSeeder, DataSeeder>();
-builder.Services.AddScoped<IRestaurantSchedulerDbContext>(
-    provider => provider.GetRequiredService<RestaurantSchedulerDbContext>());
+builder.Services.AddScoped<IFreelanceStormerDbContext>(
+    provider => provider.GetRequiredService<FreelanceStormerDbContext>());
 builder.Services.AddScoped<IDirectDbConnection, DirectDbConnection>();
 
-builder.Services.AddTransient<Faker<Restaurant>, Faker<Restaurant>>();
-builder.Services.AddTransient<Faker<Organization>, Faker<Organization>>();
+builder.Services.AddScoped<IMemoryCache, MemoryCache>();
+builder.Services.AddScoped<IDataCache, DataMemoryCache>();
+
+builder.Services.AddScoped<IOrganizationsService, OrganizationsService>();
 
 builder.Services.AddControllers();
 
@@ -49,9 +63,10 @@ Log.Information("Building application. Builder data: \n{@Builder}",
     builder);
 
 var app = builder.Build();
+
 app.UseSerilogRequestLogging(options =>
 {
-    options.GetLevel = (ctx, elapsed, ex) => Serilog.Events.LogEventLevel.Warning;    
+    options.GetLevel = (ctx, elapsed, ex) => LogEventLevel.Information;    
 });
 
 // Configure the HTTP request pipeline.
@@ -75,8 +90,7 @@ app.MapControllers();
 //         .ServiceProvider
 //         .GetRequiredService<IDataSeeder>();
 
-//    await seeder.SeedFakeUsersAsync();
-//    await seeder.SeedFakeRestaurantsAsync();
+//    await seeder.SeedFakeOrganizationsAsync();
 //}
 
 app.Run();

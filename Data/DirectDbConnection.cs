@@ -1,18 +1,22 @@
 ﻿using System.Data;
 using Dapper;
-using RestaurantScheduler.Data.Interfaces;
+using FreelanceStormer.Data.Interfaces;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
-namespace RestaurantScheduler.Data
+namespace FreelanceStormer.Data
 {
     public class DirectDbConnection : IDirectDbConnection, IDisposable
     {
-        private readonly IRestaurantSchedulerDbContext _context;
+        private readonly IFreelanceStormerDbContext _context;
 
         public DirectDbConnection(
-            IRestaurantSchedulerDbContext context)
+            IFreelanceStormerDbContext context)
         {
             _context = context;
         }
+
+        
 
         public async Task<IReadOnlyList<T>> QueryAsync<T>(
             string sql, 

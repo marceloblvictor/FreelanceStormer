@@ -1,56 +1,72 @@
 ﻿using System.Diagnostics;
+using FreelanceStormer.Models;
+using FreelanceStormer.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using RestaurantScheduler.Data.Interfaces;
-using RestaurantScheduler.Models;
 using Serilog;
+using Serilog.Context;
 
-namespace RestaurantScheduler.Controllers
+namespace FreelanceStormer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class OrganizationsController : ControllerBase
     {
-        private readonly IRestaurantSchedulerDbContext _dbContext;
-        private readonly IDirectDbConnection _directConnection;
+        private readonly Serilog.ILogger _logger;
+        private readonly IOrganizationsService _organizationsService;
 
         public OrganizationsController(
-            IRestaurantSchedulerDbContext dbContext,
-            IDirectDbConnection directConnection)
+            IOrganizationsService organizationsService)
         {
-            _dbContext = dbContext;
-            _directConnection = directConnection;
+            _organizationsService = organizationsService;
+
+            // Contextual loggers are useful for one-off, or local contextual information like the source type name.                        
+            _logger = Log.ForContext("Source", nameof(OrganizationsController));
+            // same as:
+            //_logger = Log.ForContext<OrganizationsController>();
+
+            // Add a property to the log context uniquely for the log being done in the block
+            using (LogContext.PushProperty(
+                        "ThreadId", 
+                        Thread.CurrentThread.ManagedThreadId.ToString(), 
+                        destructureObjects: false))
+            {
+                // Process request; all logged events will carry `RequestId`
+                _logger.Warning("Initiating controller...");
+            }
         }
 
         [HttpGet("{id}")]
-        public async Task<Organization> GetByIdEF(int id)
+        public async Task<Organization> GetById(int id)
         {
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var data = await _dbContext.Organizations.FindAsync(id)
-                ?? throw new Exception("Organization not found");
+            var org = await _organizationsService.Get(id);
 
             stopWatch.Stop();
 
-            Log.Warning($"{nameof(GetByIdEF)}: {stopWatch.Elapsed}s for Db retrieval");
+            _logger.Warning("{Endpoint} - DB Access Duration: {Elapsed}s. Entity retrieved: {@Organization}",
+                nameof(GetById),
+                stopWatch.Elapsed.ToString(),
+                org);
 
-            return data;
+            return org;
         }
 
         [HttpGet()]
-        public async Task<IList<Organization>> GetListEF()
+        public async Task<IReadOnlyList<Organization>> GetList(
+            [FromQuery] BasicQuery query)
         {
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var data = await _dbContext.Organizations.ToListAsync();
+            var orgs = await _organizationsService.GetAll(query);
 
             stopWatch.Stop();
 
-            Log.Warning($"{nameof(GetListEF)}: {stopWatch.Elapsed}s for Db retrieval");
+            _logger.Warning($"{nameof(GetList)}: {stopWatch.Elapsed}s. {orgs.Count} rows retrieved");
 
-            return data;
+            return orgs;
         }
 
         [HttpGet("direct/{id}")]
@@ -59,14 +75,11 @@ namespace RestaurantScheduler.Controllers
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var data = await _directConnection.QuerySingleOrDefaultAsync<Organization>(
-                "SELECT * FROM Organizations WHERE Id = @Id",
-                new { Id = id })
-                    ?? throw new Exception("Organization not found.");
+            var data = await _organizationsService.GetWithRawSql(id);
 
             stopWatch.Stop();
 
-            Log.Warning($"{nameof(GetByIdDirectly)}: {stopWatch.Elapsed}s for Db retrieval");
+            _logger.Warning($"{nameof(GetByIdDirectly)}: {stopWatch.Elapsed}");
 
             return data;
         }
@@ -77,13 +90,13 @@ namespace RestaurantScheduler.Controllers
             Stopwatch stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var data = await _directConnection.QueryAsync<Organization>("SELECT * FROM Organizations");
+            var orgs = await _organizationsService.GetAllWithRawSql();
 
             stopWatch.Stop();
 
-            Log.Warning($"{nameof(GetListDirectly)}: {stopWatch.Elapsed}s for Db retrieval");
+            _logger.Warning($"{nameof(GetListDirectly)}: {stopWatch.Elapsed}s. {orgs.Count} rows retrieved");
 
-            return data;
+            return orgs;
         }
     }
 }

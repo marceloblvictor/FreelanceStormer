@@ -1,16 +1,15 @@
 ﻿using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using RestaurantScheduler.Models;
+using FreelanceStormer.Models;
 
-namespace RestaurantScheduler.Data.Interfaces
+namespace FreelanceStormer.Data.Interfaces
 {
-    public interface IRestaurantSchedulerDbContext
+    public interface IFreelanceStormerDbContext
     {
         public IDbConnection Connection { get; }
         DatabaseFacade Database { get; }
         public DbSet<Organization> Organizations { get; set; }
-        public DbSet<Restaurant> Restaurants { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     }
 }

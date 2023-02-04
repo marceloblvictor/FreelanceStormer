@@ -1,6 +1,6 @@
 ﻿using System.Data;
 
-namespace RestaurantScheduler.Data.Interfaces
+namespace FreelanceStormer.Data.Interfaces
 {
     public interface IDirectDbConnection 
     {
