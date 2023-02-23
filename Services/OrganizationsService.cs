@@ -33,7 +33,7 @@ namespace FreelanceStormer.Services
                 .Skip(query.Skip)
                 .Take(query.Size)
                 .ToListAsync())
-                // with this line you make it impossible to modify the list even with it is casted to List<T>
+                // with this line you make it impossible to modify the list even if it is casted to List<T>
                 .AsReadOnly();
         }
 
@@ -50,7 +50,7 @@ namespace FreelanceStormer.Services
                         ?? throw new Exception("Organization not found");
 
                 _cache.Set(id, org);
-            }
+            }            
 
             return org;
         }
